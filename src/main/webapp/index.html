@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <title>Hello, world!</title>
+</head>
+<body>
+<!-- Optional JavaScript -->
+<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" ></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<script>
+    function fillHall(){
+        $(
+          $.ajax({
+            url: 'http://localhost:8080/cinema/hall.do',
+            type: 'GET',
+            data: {sessionId: "1"},
+            contentType: 'application/json; charset=utf-8'
+          }).done(function(data) {
+            var resp=JSON.parse(data);
+            select = document.getElementById('hall');
+            var txt = '<thead><tr><th>Ряд</th>';
+            var check = 0;
+            var row = resp[0].row;
+            for (var i=0; resp[i].row == row; ++i) {
+              txt += '<th>'+ resp[i].place +'</th>';
+            }
+            txt += '</tr></thead><tbody>';
+            row = '';
+
+            for (var i=0; i != resp.length; ++i) {
+              if (resp[i].row != row) {
+                if (row != '') {
+                  txt +='</tr>';
+                }
+                row = resp[i].row
+                txt += '<tr><th>' + row + '</th>';
+              }
+              var place = 'Ряд:' + row + ' Место:' + resp[i].place;
+              if (resp[i].status == 0) {
+                txt += '<td><input type="checkbox" name="place" value="' + resp[i].placeId + '">' + place + ' Цена:' + resp[i].price + '</td>';
+              } else if (resp[i].status == 11) {
+                txt += '<td><input type="checkbox" checked name="place" value="' + resp[i].placeId + '">' + place + ' Цена:' + resp[i].price + '</td>';
+              } else {
+                txt += '<td>' + place + ' Забронированно' + '</td>';
+              }
+              if (i == resp.length - 1) {
+                txt += '</tr>';
+              }
+            }
+            select.innerHTML = txt;
+        })
+      );
+    }
+</script>
+<script>
+    function pay(){
+        var places = document.getElementsByName('place');
+        var placeId = [];
+        var b = 0;
+        for(var i = 0; i < places.length; i++){
+            if(places[i].checked){
+                placeId[b++] = places[i].value;
+            }
+        }
+        $(
+            $.ajax({
+                url: 'http://localhost:8080/cinema/hall.do',
+                type: 'POST',
+                data: {sessionId: "1", place: placeId, status: "1"}
+            }).done(function(data) {
+                var resp=JSON.parse(data);
+                if (resp.orderId > 0) {
+                    window.location.href = 'payment.html?orderId=' + resp.orderId;
+                } else {
+                    alert('Выбранные места уже кто-то успел забронировать :(');
+                    fillHall();
+                }
+            })
+         );
+    }
+</script>
+<script>
+    setTimeout(function() {
+    window.location.reload();
+    }, 60000);
+</script>
+<div class="container">
+    <div class="row pt-3">
+        <h4>
+            Бронирование мест на сеанс
+        </h4>
+        <script>fillHall();</script>
+        <table class="table table-bordered" id="hall">
+        </table>
+    </div>
+    <div class="row float-right">
+        <button type="button" class="btn btn-success" onclick="pay()">Оплатить</button>
+    </div>
+</div>
+</body>
+</html>
